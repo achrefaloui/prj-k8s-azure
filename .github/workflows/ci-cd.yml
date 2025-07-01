@@ -32,8 +32,8 @@ jobs:
       uses: azure/docker-login@v1
       with:
         login-server: ${{ env.ACR_NAME }}.azurecr.io
-        username: ${{ secrets.AZURE_CLIENT_ID }} # Ces secrets sont fournis par l'action azure/login
-        password: ${{ secrets.AZURE_CLIENT_SECRET }}
+        username: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }} # Ces secrets sont fournis par l'action azure/login
+        password: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
 
     # Étape 4: Construire et Pousser l'image de l'API
     - name: Build and Push API Image
