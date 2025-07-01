@@ -1,0 +1,56 @@
+# Nom de notre workflow, visible sur l'interface GitHub
+name: Build and Push Docker Images to ACR
+
+# Déclencheur : ce workflow s'exécute à chaque push sur la branche 'main'
+on:
+  push:
+    branches: [ "main" ]
+
+# Variables d'environnement pour tout le workflow
+env:
+  ACR_NAME: acrachref2025 # <<< METTEZ ICI LE NOM DE VOTRE ACR
+  IMAGE_NAME_API: api
+  IMAGE_NAME_FRONTEND: frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest # Le pipeline tournera sur une machine virtuelle Linux (standard et rapide)
+    
+    steps:
+    # Étape 1: Récupérer le code de notre dépôt
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Étape 2: Se connecter à Azure
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }} # Utilise le secret que nous avons créé
+
+    # Étape 3: Se connecter au registre de conteneurs Azure (ACR)
+    - name: ACR Login
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.ACR_NAME }}.azurecr.io
+        username: ${{ secrets.AZURE_CLIENT_ID }} # Ces secrets sont fournis par l'action azure/login
+        password: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+    # Étape 4: Construire et Pousser l'image de l'API
+    - name: Build and Push API Image
+      run: |
+        docker build ./api -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME_API }}:${{ github.sha }}
+        docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME_API }}:${{ github.sha }}
+
+    # Étape 5: Construire et Pousser l'image du Frontend
+    - name: Build and Push Frontend Image
+      run: |
+        docker build ./frontend -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}
+        docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}
+
+    # Les étapes suivantes sont un aperçu de ce que l'on fera en phase 4
+    # Pour l'instant, elles ne font qu'afficher des messages
+    - name: 'Placeholder: Update K8s Manifests'
+      run: echo "In a real GitOps workflow, I would now update the image tag in the k8s repo."
+
+    - name: 'Placeholder: Deploy to K8s'
+      run: echo "This step would trigger ArgoCD or run kubectl apply on the cluster."
